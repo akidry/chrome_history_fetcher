@@ -8,6 +8,7 @@ Chrome閲覧履歴を取得・分析するためのツールです。
 - 訪問したWebサイトの統計情報を生成
 - 閲覧パターンの視覚化
 - 履歴データを日付付きファイル名で専用フォルダに保存
+- 実行日のみの履歴や特定の日付範囲の履歴を取得
 
 ## インストール方法
 
@@ -29,6 +30,7 @@ cd chrome_history_fetcher
 # curl -sSL https://install.python-poetry.org | python3 -
 
 # Poetry環境をセットアップ
+poetry lock
 poetry install
 
 # Poetry環境内でコマンドを実行
@@ -46,8 +48,17 @@ python chrome_history_fetcher.py
 # Poetryを使用する場合
 poetry run python chrome_history_fetcher.py
 
-# 特定の数のエントリのみ取得する場合
+# 実行日（今日）の履歴のみを取得
+python chrome_history_fetcher.py --today
+
+# 特定の日付範囲の履歴を取得
+python chrome_history_fetcher.py --start-date 2025-03-01 --end-date 2025-03-17
+
+# 特定の数のエントリのみ取得
 python chrome_history_fetcher.py -n 500
+
+# 今日の履歴で最大100件のみ取得
+python chrome_history_fetcher.py --today -n 100
 
 # カスタム出力先を指定
 python chrome_history_fetcher.py -o ./my_folder/history_data.csv
@@ -77,6 +88,9 @@ python visualize_history.py history_data.csv -o ./graphs -n 15 -d 60
 - `-p, --path` : 履歴データベースへのカスタムパス
 - `-o, --output` : 出力先CSVファイル名（指定しない場合はhistory_dataフォルダに日付付きで保存）
 - `--no-save` : CSVファイルに保存しない
+- `--today` : 実行日（今日）の履歴データのみを取得
+- `--start-date` : 取得開始日（YYYY-MM-DD形式）
+- `--end-date` : 取得終了日（YYYY-MM-DD形式）
 
 ### visualize_history.py
 
