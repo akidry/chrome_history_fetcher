@@ -14,6 +14,7 @@ import argparse
 from pathlib import Path
 import numpy as np
 from datetime import datetime, timedelta
+from utils.constants import DEFAULT_TOP_SITES, DEFAULT_DAYS_HISTORY
 
 # スタイル設定
 sns.set(style="darkgrid")
@@ -59,7 +60,7 @@ def plot_time_distribution(df, output_path=None):
     plt.show()
 
 
-def plot_domain_breakdown(df, top_n=10, output_path=None):
+def plot_domain_breakdown(df, top_n=DEFAULT_TOP_SITES, output_path=None):
     """トップドメインのパイチャート"""
     if 'domain' not in df.columns and 'url' in df.columns:
         # ドメイン列がない場合は作成
@@ -83,7 +84,7 @@ def plot_domain_breakdown(df, top_n=10, output_path=None):
     plt.show()
 
 
-def plot_daily_activity(df, days=30, output_path=None):
+def plot_daily_activity(df, days=DEFAULT_DAYS_HISTORY, output_path=None):
     """日別の閲覧活動を可視化"""
     if 'visit_time' not in df.columns:
         print("警告: 'visit_time'カラムがデータに存在しません")
@@ -127,10 +128,10 @@ def main():
     parser.add_argument('file', type=str, help='閲覧履歴データファイル（CSVまたはExcel）')
     parser.add_argument('-o', '--output_dir', type=str, default='.',
                         help='出力グラフの保存先ディレクトリ（デフォルト: カレントディレクトリ）')
-    parser.add_argument('-n', '--top_n', type=int, default=10,
-                        help='表示するトップドメインの数（デフォルト: 10）')
-    parser.add_argument('-d', '--days', type=int, default=30,
-                        help='日別アクティビティを表示する日数（デフォルト: 30）')
+    parser.add_argument('-n', '--top_n', type=int, default=DEFAULT_TOP_SITES,
+                        help=f'表示するトップドメインの数（デフォルト: {DEFAULT_TOP_SITES}）')
+    parser.add_argument('-d', '--days', type=int, default=DEFAULT_DAYS_HISTORY,
+                        help=f'日別アクティビティを表示する日数（デフォルト: {DEFAULT_DAYS_HISTORY}）')
     
     args = parser.parse_args()
     

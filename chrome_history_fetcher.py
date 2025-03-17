@@ -13,6 +13,7 @@ import pandas as pd
 import argparse
 from pathlib import Path
 from datetime import datetime, date
+from utils.constants import WINDOWS_UNIX_EPOCH_DIFFERENCE, MILLISECONDS_TO_SECONDS, DEFAULT_TOP_SITES
 
 
 def get_chrome_history_path():
@@ -78,15 +79,15 @@ def fetch_history(history_path=None, n_entries=None, today_only=False, start_dat
         
         if today_only:
             today_str = date.today().strftime('%Y-%m-%d')
-            where_clause = "WHERE DATE(visits.visit_time/1000000-11644473600, 'unixepoch', 'localtime') = ?"
+            where_clause = f"WHERE DATE(visits.visit_time/{MILLISECONDS_TO_SECONDS}-{WINDOWS_UNIX_EPOCH_DIFFERENCE}, 'unixepoch', 'localtime') = ?"
             params = (today_str,)
         elif start_date or end_date:
             conditions = []
             if start_date:
-                conditions.append("DATE(visits.visit_time/1000000-11644473600, 'unixepoch', 'localtime') >= ?")
+                conditions.append(f"DATE(visits.visit_time/{MILLISECONDS_TO_SECONDS}-{WINDOWS_UNIX_EPOCH_DIFFERENCE}, 'unixepoch', 'localtime') >= ?")
                 params += (start_date,)
             if end_date:
-                conditions.append("DATE(visits.visit_time/1000000-11644473600, 'unixepoch', 'localtime') <= ?")
+                conditions.append(f"DATE(visits.visit_time/{MILLISECONDS_TO_SECONDS}-{WINDOWS_UNIX_EPOCH_DIFFERENCE}, 'unixepoch', 'localtime') <= ?")
                 params += (end_date,)
             where_clause = "WHERE " + " AND ".join(conditions)
         
@@ -96,7 +97,7 @@ def fetch_history(history_path=None, n_entries=None, today_only=False, start_dat
         SELECT
             urls.url,
             urls.title,
-            datetime(visits.visit_time/1000000-11644473600, 'unixepoch', 'localtime') as visit_time,
+            datetime(visits.visit_time/{MILLISECONDS_TO_SECONDS}-{WINDOWS_UNIX_EPOCH_DIFFERENCE}, 'unixepoch', 'localtime') as visit_time,
             visits.visit_duration
         FROM urls
         JOIN visits ON urls.id = visits.url
@@ -123,11 +124,11 @@ def fetch_history(history_path=None, n_entries=None, today_only=False, start_dat
 def analyze_history(df):
     """履歴データの簡単な分析を行う"""
     # 訪問回数の多いサイトを抽出
-    top_sites = df['url'].value_counts().head(10)
+    top_sites = df['url'].value_counts().head(DEFAULT_TOP_SITES)
     
     # ドメインごとの訪問回数
     df['domain'] = df['url'].str.extract(r'https?://(?:www\.)?([^/]+)')
-    top_domains = df['domain'].value_counts().head(10)
+    top_domains = df['domain'].value_counts().head(DEFAULT_TOP_SITES)
     
     return {
         'top_sites': top_sites,
@@ -149,7 +150,15 @@ def get_default_output_path():
 
 
 def main():
-    """メイン関数"""
+    """
+    メイン関数
+    
+    注意: Chrome履歴データベースの時間変換について
+    Chrome履歴データベースの時刻はWindows時間形式（1601年1月1日からのマイクロ秒）で保存されています。
+    これをUnix時間形式（1970年1月1日からの秒数）に変換するため、以下の計算を行っています：
+    1. マイクロ秒を秒に変換（MILLISECONDS_TO_SECONDS = 1000000で割る）
+    2. Windows Epochと Unix Epochの差分を調整（WINDOWS_UNIX_EPOCH_DIFFERENCE = 11644473600を引く）
+    """
     parser = argparse.ArgumentParser(description='Chrome閲覧履歴を取得・分析するツール')
     parser.add_argument('-n', '--entries', type=int, default=None,
                         help='取得するエントリー数（デフォルト: すべて）')
@@ -198,7 +207,7 @@ def main():
             print(f"対象期間: {date_range}")
         
         if len(df) > 0:
-            # 分析を実行
+            # 分析を実行（DEFAULT_TOP_SITES=10で上位サイトを抽出）
             analysis = analyze_history(df)
             
             print("\n訪問回数の多いサイト（Top 10）:")

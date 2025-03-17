@@ -103,6 +103,17 @@ python visualize_history.py history_data.csv -o ./graphs -n 15 -d 60
 - Python 3.8.1+
 - 依存パッケージ (pyproject.tomlまたはrequirements.txtを参照)
 
+## 実装詳細
+
+### 定数設定
+
+Chromeの履歴データベースに関連する主要な定数は `utils/constants.py` ファイルで定義されています：
+
+- `WINDOWS_UNIX_EPOCH_DIFFERENCE` - Windows Epoch（1601年1月1日）からUnix Epoch（1970年1月1日）までの秒数
+- `MILLISECONDS_TO_SECONDS` - マイクロ秒を秒に変換する際の割り算値
+- `DEFAULT_TOP_SITES` - 分析時に表示するトップサイト数のデフォルト値
+- `DEFAULT_DAYS_HISTORY` - 表示する日別履歴のデフォルト日数
+
 ## ライセンス
 
 MIT
