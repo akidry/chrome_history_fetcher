@@ -12,6 +12,7 @@ import sqlite3
 import pandas as pd
 import argparse
 from pathlib import Path
+from datetime import datetime
 
 
 def get_chrome_history_path():
@@ -30,7 +31,7 @@ def get_chrome_history_path():
         raise OSError("サポートされていないOSです")
 
 
-def fetch_history(history_path=None, n_entries=100):
+def fetch_history(history_path=None, n_entries=None):
     """
     Chrome履歴データベースから閲覧履歴を取得する
     
@@ -38,8 +39,8 @@ def fetch_history(history_path=None, n_entries=100):
     -----------
     history_path : str or Path, optional
         履歴データベースへのパス。指定しない場合は自動検出する。
-    n_entries : int, default=100
-        取得するエントリー数
+    n_entries : int, optional
+        取得するエントリー数（指定しない場合はすべて取得）
         
     Returns:
     --------
@@ -66,6 +67,7 @@ def fetch_history(history_path=None, n_entries=100):
         conn = sqlite3.connect(temp_path)
         
         # 履歴データを取得
+        limit_clause = f"LIMIT {n_entries}" if n_entries is not None else ""
         query = f"""
         SELECT
             urls.url,
@@ -75,7 +77,7 @@ def fetch_history(history_path=None, n_entries=100):
         FROM urls
         JOIN visits ON urls.id = visits.url
         ORDER BY visits.visit_time DESC
-        LIMIT {n_entries}
+        {limit_clause}
         """
         
         df = pd.read_sql_query(query, conn)
@@ -103,15 +105,30 @@ def analyze_history(df):
     }
 
 
+def get_default_output_path():
+    """日付を含むデフォルトの出力パスを返す"""
+    # カレントディレクトリに 'history_data' フォルダを作成
+    output_dir = Path('history_data')
+    output_dir.mkdir(exist_ok=True)
+    
+    # 現在の日時を含むファイル名を生成
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f"chrome_history_{timestamp}.csv"
+    
+    return output_dir / filename
+
+
 def main():
     """メイン関数"""
     parser = argparse.ArgumentParser(description='Chrome閲覧履歴を取得・分析するツール')
-    parser.add_argument('-n', '--entries', type=int, default=100,
-                        help='取得するエントリー数（デフォルト: 100）')
+    parser.add_argument('-n', '--entries', type=int, default=None,
+                        help='取得するエントリー数（デフォルト: すべて）')
     parser.add_argument('-p', '--path', type=str, default=None,
                         help='履歴データベースへのカスタムパス')
     parser.add_argument('-o', '--output', type=str, default=None,
-                        help='出力先CSVファイル名（指定しない場合は出力しない）')
+                        help='出力先CSVファイル名（指定しない場合はhistory_dataフォルダに日付付きで保存）')
+    parser.add_argument('--no-save', action='store_true',
+                        help='CSVファイルに保存しない')
     
     args = parser.parse_args()
     
@@ -131,10 +148,18 @@ def main():
         print("\nドメインごとの訪問回数（Top 10）:")
         print(analysis['top_domains'])
         
-        # CSVに出力（指定された場合）
-        if args.output:
-            df.to_csv(args.output, index=False, encoding='utf-8')
-            print(f"\n履歴データを {args.output} に保存しました")
+        # CSVに出力（--no-saveが指定されていない場合）
+        if not args.no_save:
+            # 出力先が指定されていない場合は日付付きのデフォルトパスを使用
+            output_path = args.output if args.output else get_default_output_path()
+            
+            # 出力先ディレクトリが存在しない場合は作成
+            output_dir = os.path.dirname(output_path)
+            if output_dir and not os.path.exists(output_dir):
+                os.makedirs(output_dir)
+                
+            df.to_csv(output_path, index=False, encoding='utf-8')
+            print(f"\n履歴データを {output_path} に保存しました")
             
     except Exception as e:
         print(f"エラーが発生しました: {e}")
